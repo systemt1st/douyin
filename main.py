@@ -32,7 +32,7 @@ last_data = None
 driver = None
 
 # 要监控的页面 URL
-url = "https://www.douyin.com/user/MS4wLjABAAAAR4Xz1tBRqlZJe637o_GrROrL-gUVJZK68jZ6wboxnZ3qtXrl3Oc-jcKKY8L3_1cP"
+url = "https://www.douyin.com/user/xxx"
 
 
 def get_driver():
@@ -55,9 +55,9 @@ def send_email(changes, new_data):
     当监控数据发生变化时，通过邮件通知目标邮箱。
     请将 sender、password 替换为你自己的 QQ 邮箱及授权码。
     """
-    sender = "2799739595@qq.com"  # 替换为你的 QQ 邮箱
-    password = "derydjpmvzakdgej"  # 替换为你的授权码
-    receiver = "2799739595@qq.com"  # 接收通知的邮箱
+    sender = "xxx@qq.com"  # 替换为你的 QQ 邮箱
+    password = "xxx"  # 替换为你的授权码
+    receiver = "xxx@qq.com"  # 接收通知的邮箱
     smtp_server = "smtp.qq.com"
     smtp_port = 465  # 使用 SSL
 
