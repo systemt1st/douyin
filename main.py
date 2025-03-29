@@ -150,19 +150,11 @@ def extract_data_selenium(driver):
 
 
 def monitor(driver):
-    """
-    定时监控任务：
-      - 刷新页面、等待关键元素加载完成，
-      - 分别使用 Selenium 与 BeautifulSoup 提取数据，
-      - 将数据写入 CSV 文件，
-      - 对比上一次数据变化，如有变化则发邮件提醒。
-    """
     global last_data
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logging.info("开始监控任务: %s", current_time)
     try:
         driver.refresh()
-        # 显式等待关键元素加载完成
         wait = WebDriverWait(driver, 10)
         wait.until(EC.presence_of_element_located((By.XPATH, "//div[@data-e2e='user-info-follow']")))
 
@@ -171,7 +163,15 @@ def monitor(driver):
         data_selenium = extract_data_selenium(driver)
         data_bs = extract_data_bs(html)
 
-        # 合并两种提取结果
+        # 修正BeautifulSoup数据为空的情况
+        for key in ["关注", "粉丝", "获赞", "抖音号", "IP属地"]:
+            bs_key = f"{key}_bs"
+            selenium_key = f"{key}_selenium"
+            # 如果BeautifulSoup抓到的数据为空或None，则使用selenium的数据填充
+            if not data_bs.get(key):
+                data_bs[key] = data_selenium.get(key)
+
+        # 合并数据
         data_combined = {
             "时间": current_time,
             "关注_selenium": data_selenium.get("关注"),
@@ -185,6 +185,7 @@ def monitor(driver):
             "抖音号_bs": data_bs.get("抖音号"),
             "IP属地_bs": data_bs.get("IP属地")
         }
+
         logging.info("监控数据: %s", data_combined)
 
         # 写入 CSV
@@ -201,24 +202,30 @@ def monitor(driver):
                 writer.writeheader()
             writer.writerow(data_combined)
 
-        # 对比上一次数据
+        # 对比上一次数据 (增加容错，忽略空值造成的假变化)
         if last_data is not None:
             changes = []
             for key in data_combined:
                 if key == "时间":
                     continue
-                if data_combined.get(key) != last_data.get(key):
-                    changes.append(f"{key}: {last_data.get(key)} -> {data_combined.get(key)}")
+                prev = last_data.get(key)
+                curr = data_combined.get(key)
+                # 只有当两次数据都有效且不同，才认为是真实变化
+                if prev and curr and prev != curr:
+                    changes.append(f"{key}: {prev} -> {curr}")
+
             if changes:
                 logging.info("检测到数据变化，发送邮件提醒。变化内容：%s", changes)
                 send_email(changes, data_combined)
             else:
-                logging.info("数据无变化。")
+                logging.info("数据无变化或变化无效，忽略。")
         else:
             logging.info("这是第一次监控，无历史数据比对。")
         last_data = data_combined.copy()
+
     except Exception as e:
         logging.error("监控任务出错: %s", e)
+
 
 
 def safe_monitor():
